@@ -1,12 +1,6 @@
 name = "cloudflare-file-hosting"
-main = "worker.js"
+main = "worker.js"  # Ensure this is correct
 compatibility_date = "2025-03-21"
 
 [site]
 bucket = "./public"
-
-[vars]
-GOOGLE_DRIVE_FOLDER_ID = "1gYJTWj1qPO68t5biLu1zoP60NhbhdrWN"
-GOOGLE_DRIVE_API_KEY = "your-google-api-key-here"
-GOOGLE_DRIVE_ACCESS_TOKEN = "your-google-access-token-here"
-BOT_TOKEN = "jery"
