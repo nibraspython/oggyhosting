@@ -10,9 +10,19 @@ export default {
             });
         }
 
+        const url = new URL(request.url);
+        
+        // Serve static files from the public folder
+        if (url.pathname === "/" || url.pathname === "/index.html") {
+            return env.ASSETS.fetch(new Request(`${new URL(request.url).origin}/index.html`));
+        }
+        if (url.pathname.startsWith("/public/")) {
+            return env.ASSETS.fetch(request);
+        }
+
         const GOOGLE_DRIVE_FOLDER_ID = env.GOOGLE_DRIVE_FOLDER_ID;
         const GOOGLE_DRIVE_API_KEY = env.GOOGLE_DRIVE_API_KEY;
-        const GOOGLE_DRIVE_ACCESS_TOKEN = env.GOOGLE_DRIVE_ACCESS_TOKEN; // Requires OAuth token for deletion
+        const GOOGLE_DRIVE_ACCESS_TOKEN = env.GOOGLE_DRIVE_ACCESS_TOKEN; // OAuth token for deletion
 
         // List files in Google Drive folder
         if (request.method === "GET" && request.url.endsWith("/list-files")) {
