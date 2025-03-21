@@ -1,4 +1,4 @@
-name = "oggyhosting"
+name = "cloudflare-file-hosting"
 main = "worker/worker.js"
 compatibility_date = "2025-03-21"
 
