@@ -2,6 +2,5 @@ name = "oggyhosting"
 main = "worker/worker.js"
 compatibility_date = "2025-03-21"
 
-# Serve static files from the public folder
 [site]
 bucket = "./public"
