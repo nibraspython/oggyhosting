@@ -3,19 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloudflare File Hosting</title>
+    <title>Jerry Cloud Hosting</title>
     <link rel="stylesheet" href="style.css">
+    <script>
+        async function uploadFile(event) {
+            event.preventDefault();
+            let fileInput = document.getElementById("file");
+            let botToken = document.getElementById("bot_token").value;
+
+            if (!fileInput.files.length) {
+                alert("Please select a file.");
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+            formData.append("bot_token", botToken);
+
+            let response = await fetch("/upload-file", { method: "POST", body: formData });
+
+            let result = await response.json();
+            alert(result.message);
+            if (result.success) {
+                fileInput.value = "";
+                document.getElementById("bot_token").value = "";
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="container">
-        <h1>File Hosting</h1>
-        <form id="uploadForm">
-            <input type="file" id="fileInput" required>
-            <input type="text" id="botToken" placeholder="Enter Bot Token" required>
-            <button type="submit">Upload</button>
+        <h1>Jerry Cloud Hosting</h1>
+        <form onsubmit="uploadFile(event)">
+            <label>Select File:</label>
+            <input type="file" id="file" required>
+            
+            <label>Enter Telegram Bot Token:</label>
+            <input type="text" id="bot_token" placeholder="Enter Bot Token" required>
+
+            <button type="submit">UPLOAD</button>
         </form>
-        <div id="uploadStatus"></div>
+
+        <a href="myfiles.html" class="my-files">📂 My Files</a>
     </div>
-    <script src="script.js"></script>
 </body>
 </html>
