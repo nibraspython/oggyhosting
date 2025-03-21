@@ -10,3 +10,7 @@ GOOGLE_DRIVE_API_KEY = "your-google-drive-api-key-here"
 GOOGLE_DRIVE_ACCESS_TOKEN = "your-google-drive-access-token-here"
 GOOGLE_DRIVE_FOLDER_ID = "your-google-drive-folder-id-here"
 BOT_TOKEN = "your-bot-token-here"
+
+# wrangler.toml (wrangler v3.88.0^)
+[observability.logs]
+enabled = true
