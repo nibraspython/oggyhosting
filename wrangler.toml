@@ -1,0 +1,10 @@
+name = "cloudflare-file-hosting"
+type = "javascript"
+
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "file-storage"
+
+[[kv_namespaces]]
+binding = "KV_STORAGE"
+id = "your-kv-namespace-id"
