@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Files</title>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        async function loadFiles() {
+            let response = await fetch("/list-files");
+            let data = await response.json();
+            let fileList = document.getElementById("fileList");
+
+            if (data.files.length === 0) {
+                fileList.innerHTML = "<p>No files found.</p>";
+            } else {
+                fileList.innerHTML = data.files.map(file => `
+                    <li>
+                        <a href="${file.url}" target="_blank">${file.name}</a>
+                        <button class="delete-btn" onclick="confirmDelete('${file.name}')">Delete</button>
+                    </li>
+                `).join("");
+            }
+        }
+
+        function confirmDelete(fileName) {
+            document.getElementById("deleteBox").style.display = "block";
+            document.getElementById("deleteFile").value = fileName;
+        }
+
+        function cancelDelete() {
+            document.getElementById("deleteBox").style.display = "none";
+            document.getElementById("deleteFile").value = "";
+            document.getElementById("deleteToken").value = "";
+        }
+
+        async function deleteFile(event) {
+            event.preventDefault();
+            let fileName = document.getElementById("deleteFile").value;
+            let botToken = document.getElementById("deleteToken").value;
+
+            let response = await fetch("/delete-file", {
+                method: "POST",
+                body: JSON.stringify({ file: fileName, bot_token: botToken }),
+                headers: { "Content-Type": "application/json" }
+            });
+
+            let result = await response.json();
+            alert(result.message);
+            if (result.success) {
+                loadFiles();
+                cancelDelete();
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", loadFiles);
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>My Files</h1>
+        <ul id="fileList"></ul>
+        <a class="my-files" href="index.html">Back to Upload</a>
+
+        <!-- Delete Confirmation Box -->
+        <div id="deleteBox" class="delete-box" style="display: none;">
+            <h2>Enter Bot Token</h2>
+            <form onsubmit="deleteFile(event)">
+                <input type="hidden" id="deleteFile">
+                <input type="text" id="deleteToken" placeholder="Enter Bot Token" required>
+                <br>
+                <button type="submit">Delete</button>
+                <button type="button" onclick="cancelDelete()">Cancel</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
