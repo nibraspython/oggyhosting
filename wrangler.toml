@@ -1,10 +1,3 @@
-name = "cloudflare-file-hosting"
-type = "javascript"
-
-[[r2_buckets]]
-binding = "R2_BUCKET"
-bucket_name = "file-storage"
-
-[[kv_namespaces]]
-binding = "KV_STORAGE"
-id = "your-kv-namespace-id"
+name = "oggyhosting"
+main = "worker/worker.js"   # Point to the correct entry file
+compatibility_date = "2025-03-21"
