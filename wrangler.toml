@@ -4,3 +4,9 @@ compatibility_date = "2025-03-21"
 
 [site]
 bucket = "./public"
+
+[env.production]
+GOOGLE_DRIVE_API_KEY = "your-google-drive-api-key-here"
+GOOGLE_DRIVE_ACCESS_TOKEN = "your-google-drive-access-token-here"
+GOOGLE_DRIVE_FOLDER_ID = "your-google-drive-folder-id-here"
+BOT_TOKEN = "your-bot-token-here"
