@@ -3,6 +3,12 @@ export default {
         try {
             const url = new URL(request.url);
 
+            if (url.pathname === "/debug") {
+                // List all KV keys to check if index.html exists
+                const keys = await env.STATIC_CONTENT_KV.list();
+                return new Response(JSON.stringify(keys, null, 2), { headers: { "Content-Type": "application/json" } });
+            }
+
             if (url.pathname === "/" || url.pathname === "/index.html") {
                 let staticFile = await env.STATIC_CONTENT_KV.get("index.html", "text");
                 if (staticFile) {
