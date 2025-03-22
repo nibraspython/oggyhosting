@@ -13,33 +13,7 @@ export default {
         }
 
         const url = new URL(request.url);
-        let path = url.pathname.substring(1); // Remove leading "/"
-
-        // 📌 Debug Endpoint
-        if (url.pathname === "/debug") {
-            console.log("🛠️ Debug endpoint accessed.");
-            try {
-                const kvFiles = await env.STATIC_CONTENT_KV.list();
-                return new Response(JSON.stringify({
-                    success: true,
-                    message: "Debug Information",
-                    request: {
-                        method: request.method,
-                        url: request.url,
-                        headers: Object.fromEntries(request.headers.entries())
-                    },
-                    env: {
-                        GOOGLE_DRIVE_FOLDER_ID: env.GOOGLE_DRIVE_FOLDER_ID,
-                        BOT_TOKEN: env.BOT_TOKEN ? "Exists" : "Not Set"
-                    }
-                }, null, 2), {
-                    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-                });
-            } catch (error) {
-                console.error("🚨 Error accessing KV storage:", error);
-                return new Response(JSON.stringify({ success: false, message: "❌ Error accessing KV storage." }), { status: 500 });
-            }
-        }
+        let path = url.pathname.substring(1);
 
         // 📂 Serve Static Files
         if (!path) path = "index.html";
@@ -55,8 +29,6 @@ export default {
                         "Access-Control-Allow-Origin": "*"
                     }
                 });
-            } else {
-                console.warn(`❌ Static file not found: ${path}`);
             }
         } catch (error) {
             console.error("🚨 Static file error:", error);
@@ -65,7 +37,7 @@ export default {
 
         const { GOOGLE_DRIVE_FOLDER_ID, GOOGLE_DRIVE_ACCESS_TOKEN, BOT_TOKEN } = env;
 
-        // 📤 Upload File to Google Drive
+        // 📤 Upload File to Google Drive (Fixed)
         if (request.method === "POST" && url.pathname === "/upload-file") {
             try {
                 const formData = await request.formData();
@@ -80,12 +52,10 @@ export default {
                     return new Response(JSON.stringify({ success: false, message: "❌ Incorrect bot token." }), { status: 403 });
                 }
 
-                // ✅ File Size Check
                 if (file.size > 50 * 1024 * 1024) {
                     return new Response(JSON.stringify({ success: false, message: "❌ File size exceeds 50MB limit." }), { status: 400 });
                 }
 
-                // ✅ File Type Restriction
                 const allowedTypes = ["image/jpeg", "image/png", "application/pdf", "video/mp4"];
                 if (!allowedTypes.includes(file.type)) {
                     return new Response(JSON.stringify({ success: false, message: "❌ Invalid file type. Allowed: JPG, PNG, PDF, MP4." }), { status: 400 });
@@ -95,9 +65,9 @@ export default {
                 const existingFilesResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${GOOGLE_DRIVE_FOLDER_ID}'+in+parents`, {
                     headers: { "Authorization": `Bearer ${GOOGLE_DRIVE_ACCESS_TOKEN}` }
                 });
-                const existingFiles = await existingFilesResponse.json();
 
-                if (existingFiles.files.some(existingFile => existingFile.name === file.name)) {
+                const existingFiles = await existingFilesResponse.json();
+                if (existingFiles.files?.some(existingFile => existingFile.name === file.name)) {
                     return new Response(JSON.stringify({
                         success: false,
                         message: "❌ Duplicate file name found. Please rename your file or delete the existing one."
@@ -134,32 +104,14 @@ export default {
                     });
                 }
 
-                return new Response(JSON.stringify({ success: false, message: "❌ Upload failed.", error: uploadResult }), { status: uploadResponse.status });
+                return new Response(JSON.stringify({
+                    success: false,
+                    message: `bro upload files ❌ ${uploadResult.error?.message || "Unknown error"}`
+                }), { status: uploadResponse.status });
+
             } catch (error) {
                 console.error("🚨 Upload error:", error);
-                return new Response(JSON.stringify({ success: false, message: "❌ Server error occurred while uploading the file." }), { status: 500 });
-            }
-        }
-
-        // 📂 List Files
-        if (request.method === "GET" && url.pathname === "/list-files") {
-            try {
-                const response = await fetch(`https://www.googleapis.com/drive/v3/files?q='${GOOGLE_DRIVE_FOLDER_ID}'+in+parents`, {
-                    headers: { "Authorization": `Bearer ${GOOGLE_DRIVE_ACCESS_TOKEN}` }
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.files) {
-                    return new Response(JSON.stringify({ success: true, files: data.files.map(file => ({ id: file.id, name: file.name })) }), {
-                        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-                    });
-                }
-
-                return new Response(JSON.stringify({ success: false, message: "❌ No files found in the folder." }), { status: response.status });
-            } catch (error) {
-                console.error("🚨 Google Drive API error:", error);
-                return new Response(JSON.stringify({ success: false, message: "❌ Failed to fetch files." }), { status: 500 });
+                return new Response(JSON.stringify({ success: false, message: `bro upload files ❌ ${error.message}` }), { status: 500 });
             }
         }
 
