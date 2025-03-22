@@ -35,9 +35,9 @@ export default {
             return new Response("❌ Error loading static files.", { status: 500 });
         }
 
-        const { GOOGLE_DRIVE_FOLDER_ID, GOOGLE_DRIVE_ACCESS_TOKEN, BOT_TOKEN } = env;
+        const { B2_KEY_ID, B2_APPLICATION_KEY, B2_BUCKET_NAME, BOT_TOKEN } = env;
 
-        // 📤 Upload File to Google Drive (Fixed)
+        // 📤 Upload File to Backblaze B2
         if (request.method === "POST" && url.pathname === "/upload-file") {
             try {
                 const formData = await request.formData();
@@ -61,52 +61,66 @@ export default {
                     return new Response(JSON.stringify({ success: false, message: "❌ Invalid file type. Allowed: JPG, PNG, PDF, MP4." }), { status: 400 });
                 }
 
-                // 🔎 Check for Duplicate File
-                const existingFilesResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${GOOGLE_DRIVE_FOLDER_ID}'+in+parents&fields=files(id,name)`, {
-                    headers: { "Authorization": `Bearer ${GOOGLE_DRIVE_ACCESS_TOKEN}` }
-                });
-
-                const existingFiles = await existingFilesResponse.json();
-                if (existingFiles.files?.some(existingFile => existingFile.name === file.name)) {
-                    return new Response(JSON.stringify({
-                        success: false,
-                        message: "❌ Duplicate file name found. Please rename your file or delete the existing one."
-                    }), { status: 409 });
-                }
-
                 console.log(`📤 Uploading file: ${file.name}`);
 
-                const metadata = {
-                    name: file.name,
-                    parents: [GOOGLE_DRIVE_FOLDER_ID]
-                };
+                // 🔑 Get B2 Authorization Token
+                const authResponse = await fetch("https://api.backblazeb2.com/b2api/v2/b2_authorize_account", {
+                    headers: {
+                        Authorization: `Basic ${btoa(`${B2_KEY_ID}:${B2_APPLICATION_KEY}`)}`
+                    }
+                });
 
-                const fileBlob = await file.arrayBuffer();
-                const form = new FormData();
-                form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-                form.append("file", new Blob([fileBlob], { type: file.type }));
+                const authData = await authResponse.json();
+                if (!authResponse.ok) {
+                    return new Response(JSON.stringify({ success: false, message: "❌ B2 Auth Failed" }), { status: 500 });
+                }
 
-                console.log("⏳ Sending file to Google Drive...");
+                const { apiUrl, authorizationToken } = authData;
 
-                const uploadResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name`, {
+                // 📥 Get Upload URL
+                const uploadUrlResponse = await fetch(`${apiUrl}/b2api/v2/b2_get_upload_url`, {
                     method: "POST",
                     headers: {
-                        "Authorization": `Bearer ${GOOGLE_DRIVE_ACCESS_TOKEN}`
+                        Authorization: authorizationToken,
+                        "Content-Type": "application/json"
                     },
-                    body: form
+                    body: JSON.stringify({ bucketId: B2_BUCKET_NAME })
+                });
+
+                const uploadUrlData = await uploadUrlResponse.json();
+                if (!uploadUrlResponse.ok) {
+                    return new Response(JSON.stringify({ success: false, message: "❌ Failed to get upload URL" }), { status: 500 });
+                }
+
+                const { uploadUrl, authorizationToken: uploadAuthToken } = uploadUrlData;
+
+                // 📤 Upload File to B2
+                const fileBlob = await file.arrayBuffer();
+                const uploadResponse = await fetch(uploadUrl, {
+                    method: "POST",
+                    headers: {
+                        Authorization: uploadAuthToken,
+                        "X-Bz-File-Name": encodeURIComponent(file.name),
+                        "Content-Type": file.type,
+                        "X-Bz-Content-Sha1": "do_not_verify"
+                    },
+                    body: fileBlob
                 });
 
                 const uploadResult = await uploadResponse.json();
-
                 if (uploadResponse.ok) {
-                    return new Response(JSON.stringify({ success: true, fileId: uploadResult.id, message: "✅ File uploaded successfully!" }), {
+                    return new Response(JSON.stringify({
+                        success: true,
+                        fileId: uploadResult.fileId,
+                        message: "✅ File uploaded successfully!"
+                    }), {
                         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
                     });
                 }
 
                 return new Response(JSON.stringify({
                     success: false,
-                    message: `❌ Upload error: ${uploadResult.error?.message || "Unknown error"}`
+                    message: `❌ Upload error: ${uploadResult.message || "Unknown error"}`
                 }), { status: uploadResponse.status });
 
             } catch (error) {
