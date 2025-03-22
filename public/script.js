@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 result = await response.json();
             } catch (jsonError) {
+                console.error("❌ JSON Parsing Error:", jsonError);
                 throw new Error("❌ Server returned an invalid response.");
             }
 
@@ -39,10 +40,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 statusMsg.innerHTML = `<span style='color:green;'>✅ Upload successful! File ID: ${result.fileId}</span>`;
                 document.getElementById("uploadForm").reset();
             } else {
+                console.error("❌ Upload Error:", result);
                 statusMsg.innerHTML = `<span style='color:red;'>❌ ${result.message || "Unknown error occurred."}</span>`;
             }
         } catch (error) {
-            console.error("Upload failed:", error);
+            console.error("🚨 Upload failed:", error);
             statusMsg.innerHTML = `<span style='color:red;'>❌ Upload failed: ${error.message}</span>`;
         }
     });
