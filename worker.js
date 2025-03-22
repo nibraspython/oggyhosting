@@ -3,9 +3,8 @@ export default {
         try {
             const url = new URL(request.url);
 
-            // Serve index.html
             if (url.pathname === "/" || url.pathname === "/index.html") {
-                let staticFile = await env.STATIC_CONTENT_KV.get("index.html");
+                let staticFile = await env.STATIC_CONTENT_KV.get("index.html", "text");
                 if (staticFile) {
                     return new Response(staticFile, {
                         headers: { "Content-Type": "text/html" }
