@@ -71,6 +71,8 @@ export default {
                 });
 
                 const authData = await authResponse.json();
+                console.log("B2 Auth Response:", authData); // Debugging the auth response
+
                 if (!authResponse.ok) {
                     return new Response(JSON.stringify({ success: false, message: "❌ B2 Auth Failed" }), { status: 500 });
                 }
@@ -88,6 +90,8 @@ export default {
                 });
 
                 const uploadUrlData = await uploadUrlResponse.json();
+                console.log("Upload URL Response:", uploadUrlData); // Debugging the upload URL response
+
                 if (!uploadUrlResponse.ok) {
                     return new Response(JSON.stringify({ success: false, message: "❌ Failed to get upload URL" }), { status: 500 });
                 }
@@ -108,6 +112,8 @@ export default {
                 });
 
                 const uploadResult = await uploadResponse.json();
+                console.log("Upload File Response:", uploadResult); // Debugging the upload response
+
                 if (uploadResponse.ok) {
                     return new Response(JSON.stringify({
                         success: true,
