@@ -3,11 +3,16 @@ document.addEventListener("DOMContentLoaded", () => {
         event.preventDefault();
 
         let fileInput = document.getElementById("file").files[0];
-        let botToken = document.getElementById("bot_token").value;
+        let botToken = document.getElementById("bot_token").value.trim();
         let statusMsg = document.getElementById("uploadStatus");
 
         if (!fileInput) {
             statusMsg.innerHTML = "<span style='color:red;'>❌ Please select a file.</span>";
+            return;
+        }
+
+        if (!botToken) {
+            statusMsg.innerHTML = "<span style='color:red;'>❌ Please enter your bot token.</span>";
             return;
         }
 
@@ -23,17 +28,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: formData
             });
 
-            let result = await response.json();
-            
-            if (result.success) {
-                statusMsg.innerHTML = "<span style='color:green;'>✅ Upload successful!</span>";
+            let result;
+            try {
+                result = await response.json();
+            } catch (jsonError) {
+                throw new Error("❌ Server returned an invalid response.");
+            }
+
+            if (response.ok && result.success) {
+                statusMsg.innerHTML = `<span style='color:green;'>✅ Upload successful! File ID: ${result.fileId}</span>`;
                 document.getElementById("uploadForm").reset();
             } else {
-                statusMsg.innerHTML = `<span style='color:red;'>❌ ${result.message}</span>`;
+                statusMsg.innerHTML = `<span style='color:red;'>❌ ${result.message || "Unknown error occurred."}</span>`;
             }
         } catch (error) {
             console.error("Upload failed:", error);
-            statusMsg.innerHTML = "<span style='color:red;'>❌ Upload failed. Check console.</span>";
+            statusMsg.innerHTML = `<span style='color:red;'>❌ Upload failed: ${error.message}</span>`;
         }
     });
 });
