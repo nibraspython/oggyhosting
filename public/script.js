@@ -11,11 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        if (fileInput.size > 50 * 1024 * 1024) { // 50MB limit
-            statusMsg.innerHTML = "<span style='color:red;'>❌ File size exceeds 50MB limit.</span>";
-            return;
-        }
-
         statusMsg.innerHTML = "⏳ Uploading file...";
 
         let formData = new FormData();
