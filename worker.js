@@ -62,7 +62,7 @@ export default {
                 }
 
                 // 🔎 Check for Duplicate File
-                const existingFilesResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${GOOGLE_DRIVE_FOLDER_ID}'+in+parents`, {
+                const existingFilesResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q='${GOOGLE_DRIVE_FOLDER_ID}'+in+parents&fields=files(id,name)`, {
                     headers: { "Authorization": `Bearer ${GOOGLE_DRIVE_ACCESS_TOKEN}` }
                 });
 
@@ -88,7 +88,7 @@ export default {
 
                 console.log("⏳ Sending file to Google Drive...");
 
-                const uploadResponse = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
+                const uploadResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name`, {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${GOOGLE_DRIVE_ACCESS_TOKEN}`
@@ -106,12 +106,12 @@ export default {
 
                 return new Response(JSON.stringify({
                     success: false,
-                    message: `bro upload files ❌ ${uploadResult.error?.message || "Unknown error"}`
+                    message: `❌ Upload error: ${uploadResult.error?.message || "Unknown error"}`
                 }), { status: uploadResponse.status });
 
             } catch (error) {
                 console.error("🚨 Upload error:", error);
-                return new Response(JSON.stringify({ success: false, message: `bro upload files ❌ ${error.message}` }), { status: 500 });
+                return new Response(JSON.stringify({ success: false, message: `❌ Upload error: ${error.message}` }), { status: 500 });
             }
         }
 
