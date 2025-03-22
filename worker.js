@@ -30,7 +30,6 @@ export default {
                     },
                     env: {
                         GOOGLE_DRIVE_FOLDER_ID: env.GOOGLE_DRIVE_FOLDER_ID,
-                        STATIC_CONTENT_KV: kvFiles.keys.map(file => file.name), // Show stored files
                         BOT_TOKEN: env.BOT_TOKEN ? "Exists" : "Not Set"
                     }
                 }, null, 2), {
@@ -65,9 +64,9 @@ export default {
         }
 
         // 🌐 Google Drive API Configuration
-        const { GOOGLE_DRIVE_FOLDER_ID, GOOGLE_DRIVE_API_KEY, GOOGLE_DRIVE_ACCESS_TOKEN, BOT_TOKEN } = env;
+        const { GOOGLE_DRIVE_FOLDER_ID, GOOGLE_DRIVE_ACCESS_TOKEN, BOT_TOKEN } = env;
 
-        // 📤 Upload File to Google Drive
+        // 📤 Upload File to Google Drive (Fixed)
         if (request.method === "POST" && url.pathname === "/upload-file") {
             try {
                 const formData = await request.formData();
@@ -94,13 +93,18 @@ export default {
                 form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
                 form.append("file", new Blob([fileBlob], { type: file.type }));
 
-                const uploadResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`, {
+                console.log("⏳ Sending file to Google Drive...");
+
+                const uploadResponse = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
                     method: "POST",
-                    headers: { "Authorization": `Bearer ${GOOGLE_DRIVE_ACCESS_TOKEN}` },
+                    headers: {
+                        "Authorization": `Bearer ${GOOGLE_DRIVE_ACCESS_TOKEN}`
+                    },
                     body: form
                 });
 
                 const uploadResult = await uploadResponse.json();
+                console.log("🔍 Google Drive Response:", uploadResponse.status, uploadResult);
 
                 if (uploadResponse.ok) {
                     return new Response(JSON.stringify({ success: true, fileId: uploadResult.id, message: "✅ File uploaded successfully!" }), {
@@ -108,7 +112,7 @@ export default {
                     });
                 }
 
-                return new Response(JSON.stringify({ success: false, message: "❌ Upload failed." }), { status: 500 });
+                return new Response(JSON.stringify({ success: false, message: "❌ Upload failed.", error: uploadResult }), { status: uploadResponse.status });
             } catch (error) {
                 console.error("🚨 Upload error:", error);
                 return new Response(JSON.stringify({ success: false, message: "❌ Server error occurred while uploading the file." }), { status: 500 });
@@ -118,16 +122,20 @@ export default {
         // 📂 List files in Google Drive folder
         if (request.method === "GET" && url.pathname === "/list-files") {
             try {
-                const response = await fetch(`https://www.googleapis.com/drive/v3/files?q='${GOOGLE_DRIVE_FOLDER_ID}'+in+parents&key=${GOOGLE_DRIVE_API_KEY}`);
-                const data = await response.json();
+                const response = await fetch(`https://www.googleapis.com/drive/v3/files?q='${GOOGLE_DRIVE_FOLDER_ID}'+in+parents`, {
+                    headers: { "Authorization": `Bearer ${GOOGLE_DRIVE_ACCESS_TOKEN}` }
+                });
 
-                if (data.files) {
+                const data = await response.json();
+                console.log("📁 List files response:", response.status, data);
+
+                if (response.ok && data.files) {
                     return new Response(JSON.stringify({ success: true, files: data.files.map(file => ({ id: file.id, name: file.name })) }), {
                         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
                     });
                 }
 
-                return new Response(JSON.stringify({ success: false, message: "❌ No files found in the folder." }), { status: 404 });
+                return new Response(JSON.stringify({ success: false, message: "❌ No files found in the folder." }), { status: response.status });
             } catch (error) {
                 console.error("🚨 Google Drive API error:", error);
                 return new Response(JSON.stringify({ success: false, message: "❌ Failed to fetch files." }), { status: 500 });
