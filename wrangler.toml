@@ -1,10 +1,9 @@
 name = "cloudflare-file-hosting"
-main = "worker.js"
+main = "worker.js"  # This is the correct field to point to your worker.js file
 compatibility_date = "2025-03-21"
 
 [site]
-bucket = "./public"
-entry-point = "worker.js"  # Defines the entry point for the worker.
+bucket = "./public"  # This defines the folder where your static files are located
 
 [[kv_namespaces]]
 binding = "STATIC_CONTENT_KV"  # This is your KV binding name for storing static files
@@ -15,6 +14,7 @@ logpush = true
 
 [observability.logs]
 enabled = true
+# Replace with your bot token used for file uploads
 
 [vars]
 B2_KEY_ID = "005abbe6f37e7b80000000001"  # Replace with your Backblaze B2 Key ID
