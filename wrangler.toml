@@ -19,5 +19,5 @@ enabled = true
 [vars]
 B2_KEY_ID = "005abbe6f37e7b80000000001"  # Replace with your Backblaze B2 Key ID
 B2_APPLICATION_KEY = "K005GKG/KitTpDqi/GP04sn+0OjgNwo"  # Replace with your Backblaze B2 Application Key
-B2_BUCKET_NAME = "oggy"  # Replace with your Backblaze B2 Bucket Name
+B2_BUCKET_NAME = "ogggapi"  # Replace with your Backblaze B2 Bucket Name
 BOT_TOKEN = "11"  # Replace with your bot token used for file uploads
