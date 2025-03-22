@@ -5,7 +5,7 @@ export default {
 
             // Serve index.html
             if (url.pathname === "/" || url.pathname === "/index.html") {
-                let staticFile = await env.__STATIC_CONTENT.get("index.html");
+                let staticFile = await env.STATIC_CONTENT_KV.get("index.html");
                 if (staticFile) {
                     return new Response(staticFile, {
                         headers: { "Content-Type": "text/html" }
