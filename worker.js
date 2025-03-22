@@ -3,24 +3,23 @@ export default {
         try {
             const url = new URL(request.url);
 
-            if (url.pathname === "/debug") {
-                // List all KV keys to check if index.html exists
-                const keys = await env.STATIC_CONTENT_KV.list();
-                return new Response(JSON.stringify(keys, null, 2), { headers: { "Content-Type": "application/json" } });
+            // Fetch all keys from KV
+            const keys = await env.STATIC_CONTENT_KV.list();
+            let indexFileKey = keys.keys.find(k => k.name.startsWith("index"));
+
+            if (!indexFileKey) {
+                return new Response("🚨 index.html not found in KV!", { status: 404 });
             }
 
-            if (url.pathname === "/" || url.pathname === "/index.html") {
-                let staticFile = await env.STATIC_CONTENT_KV.get("index.html", "text");
-                if (staticFile) {
-                    return new Response(staticFile, {
-                        headers: { "Content-Type": "text/html" }
-                    });
-                } else {
-                    return new Response("🚨 index.html not found in KV!", { status: 404 });
-                }
+            // Retrieve the correct index.html file
+            let staticFile = await env.STATIC_CONTENT_KV.get(indexFileKey.name, "text");
+            if (staticFile) {
+                return new Response(staticFile, {
+                    headers: { "Content-Type": "text/html" }
+                });
+            } else {
+                return new Response("🚨 index.html found in KV but cannot be loaded!", { status: 500 });
             }
-
-            return new Response("404 Not Found", { status: 404 });
 
         } catch (err) {
             return new Response(`Error: ${err.message}`, { status: 500 });
