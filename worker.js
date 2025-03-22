@@ -16,7 +16,7 @@ export default {
         const url = new URL(request.url);
         let path = url.pathname.substring(1); // Remove leading "/"
 
-        // 🔎 Debug Endpoint
+        // 📌 Debug Endpoint
         if (url.pathname === "/debug") {
             console.log("🛠️ Debug endpoint accessed.");
             return new Response(JSON.stringify({
@@ -37,7 +37,7 @@ export default {
             });
         }
 
-        // 📌 Serve Static Files from Cloudflare KV
+        // 📂 Serve Static Files from Cloudflare KV
         if (!path) {
             path = "index.html"; // Default to index.html if root is accessed
         }
@@ -72,6 +72,63 @@ export default {
         const GOOGLE_DRIVE_ACCESS_TOKEN = env.GOOGLE_DRIVE_ACCESS_TOKEN;
         const BOT_TOKEN = env.BOT_TOKEN;
 
+        // 📤 Upload File to Google Drive
+        if (request.method === "POST" && url.pathname === "/upload-file") {
+            try {
+                const formData = await request.formData();
+                const file = formData.get("file");
+                const botToken = formData.get("bot_token");
+
+                console.log(`📤 Uploading file: ${file.name}`);
+
+                if (!file || !botToken) {
+                    console.warn("⚠️ Missing file or bot token.");
+                    return new Response(JSON.stringify({ success: false, message: "❌ File and bot token are required." }), { status: 400 });
+                }
+
+                if (botToken !== BOT_TOKEN) {
+                    console.warn("❌ Incorrect bot token.");
+                    return new Response(JSON.stringify({ success: false, message: "❌ Incorrect bot token." }), { status: 403 });
+                }
+
+                console.log("✅ Bot token verified.");
+
+                // Convert file to base64
+                const arrayBuffer = await file.arrayBuffer();
+                const base64File = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+                console.log("⏳ Uploading to Google Drive...");
+
+                const uploadResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${GOOGLE_DRIVE_ACCESS_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        name: file.name,
+                        parents: [GOOGLE_DRIVE_FOLDER_ID],
+                        mimeType: file.type
+                    })
+                });
+
+                const uploadResult = await uploadResponse.json();
+
+                if (uploadResponse.ok) {
+                    console.log(`✅ File uploaded successfully: ${uploadResult.id}`);
+                    return new Response(JSON.stringify({ success: true, fileId: uploadResult.id, message: "✅ File uploaded successfully!" }), {
+                        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+                    });
+                }
+
+                console.warn("❌ Upload failed.");
+                return new Response(JSON.stringify({ success: false, message: "❌ Upload failed." }), { status: 500 });
+            } catch (error) {
+                console.error("🚨 Upload error:", error);
+                return new Response(JSON.stringify({ success: false, message: "❌ Server error occurred while uploading the file." }), { status: 500 });
+            }
+        }
+
         // 📂 List files in Google Drive folder
         if (request.method === "GET" && url.pathname === "/list-files") {
             console.log("🔍 Fetching file list from Google Drive...");
@@ -104,7 +161,6 @@ export default {
                     return new Response(JSON.stringify({ success: false, message: "❌ File ID is required." }), { status: 400 });
                 }
 
-                console.log(`🔑 Verifying bot token...`);
                 if (!bot_token || bot_token !== BOT_TOKEN) {
                     console.warn("❌ Incorrect bot token.");
                     return new Response(JSON.stringify({ success: false, message: "❌ Incorrect bot token." }), { status: 403 });
@@ -136,20 +192,3 @@ export default {
         return new Response("404 Not Found", { status: 404 });
     }
 };
-
-// 📌 Helper function to get MIME types
-function getMimeType(path) {
-    const extension = path.split('.').pop();
-    const mimeTypes = {
-        "html": "text/html",
-        "css": "text/css",
-        "js": "application/javascript",
-        "json": "application/json",
-        "png": "image/png",
-        "jpg": "image/jpeg",
-        "jpeg": "image/jpeg",
-        "gif": "image/gif",
-        "svg": "image/svg+xml"
-    };
-    return mimeTypes[extension] || "application/octet-stream";
-}
