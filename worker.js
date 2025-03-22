@@ -14,33 +14,56 @@ export default {
         }
 
         const url = new URL(request.url);
-        const path = url.pathname.substring(1); // Remove leading "/"
+        let path = url.pathname.substring(1); // Remove leading "/"
+
+        // 🔎 Debug Endpoint
+        if (url.pathname === "/debug") {
+            console.log("🛠️ Debug endpoint accessed.");
+            return new Response(JSON.stringify({
+                success: true,
+                message: "Debug Information",
+                request: {
+                    method: request.method,
+                    url: request.url,
+                    headers: Object.fromEntries(request.headers.entries())
+                },
+                env: {
+                    GOOGLE_DRIVE_FOLDER_ID: env.GOOGLE_DRIVE_FOLDER_ID,
+                    STATIC_CONTENT_KV: "Configured",
+                    BOT_TOKEN: env.BOT_TOKEN ? "Exists" : "Not Set"
+                }
+            }, null, 2), {
+                headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+            });
+        }
 
         // 📌 Serve Static Files from Cloudflare KV
-        if (path) {
-            try {
-                console.log(`📂 Looking for static file: ${path}`);
-                const kvFiles = await env.STATIC_CONTENT_KV.list();
-                let matchedFile = kvFiles.keys.find(k => k.name.startsWith(path));
+        if (!path) {
+            path = "index.html"; // Default to index.html if root is accessed
+        }
 
-                if (matchedFile) {
-                    console.log(`✅ Found static file: ${matchedFile.name}`);
-                    let staticFile = await env.STATIC_CONTENT_KV.get(matchedFile.name, "stream");
-                    if (staticFile) {
-                        return new Response(staticFile, {
-                            headers: { 
-                                "Content-Type": getMimeType(matchedFile.name),
-                                "Access-Control-Allow-Origin": "*"
-                            }
-                        });
-                    }
-                } else {
-                    console.warn(`❌ Static file not found: ${path}`);
+        try {
+            console.log(`📂 Looking for static file: ${path}`);
+            const kvFiles = await env.STATIC_CONTENT_KV.list();
+            let matchedFile = kvFiles.keys.find(k => k.name.startsWith(path));
+
+            if (matchedFile) {
+                console.log(`✅ Found static file: ${matchedFile.name}`);
+                let staticFile = await env.STATIC_CONTENT_KV.get(matchedFile.name, "stream");
+                if (staticFile) {
+                    return new Response(staticFile, {
+                        headers: { 
+                            "Content-Type": getMimeType(matchedFile.name),
+                            "Access-Control-Allow-Origin": "*"
+                        }
+                    });
                 }
-            } catch (error) {
-                console.error("🚨 Static file error:", error);
-                return new Response("❌ Error loading static files.", { status: 500 });
+            } else {
+                console.warn(`❌ Static file not found: ${path}`);
             }
+        } catch (error) {
+            console.error("🚨 Static file error:", error);
+            return new Response("❌ Error loading static files.", { status: 500 });
         }
 
         // 🌐 Google Drive API Configuration
@@ -126,10 +149,6 @@ function getMimeType(path) {
         "jpg": "image/jpeg",
         "jpeg": "image/jpeg",
         "gif": "image/gif",
-        "svg": "image/svg+xml"
-    };
-    return mimeTypes[extension] || "application/octet-stream";
-}
         "svg": "image/svg+xml"
     };
     return mimeTypes[extension] || "application/octet-stream";
