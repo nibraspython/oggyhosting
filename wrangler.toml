@@ -1,22 +1,20 @@
 name = "cloudflare-file-hosting"
-main = "worker.js"  # Ensure this is correct
+main = "worker.js"
 compatibility_date = "2025-03-21"
 
 [site]
 bucket = "./public"
 
 [[kv_namespaces]]
-binding = "__STATIC_CONTENT"
+binding = "STATIC_CONTENT_KV"  # New binding name
 id = "0f5b1e647f2a473ca6d3e2a1d1b9b409"  # Replace with your actual KV namespace ID
 
 [env.production]
-# Do NOT store secrets here; set them using `wrangler secret put`
 logpush = true
 
 [observability.logs]
 enabled = true
 
-# Move these inside the same `[env.production]` block
 [vars]
 GOOGLE_DRIVE_API_KEY = "your-google-drive-api-key-here"
 GOOGLE_DRIVE_ACCESS_TOKEN = "your-google-drive-access-token-here"
