@@ -35,9 +35,9 @@ export default {
             return new Response("❌ Error loading static files.", { status: 500 });
         }
 
-        const { B2_KEY_ID, B2_APPLICATION_KEY, B2_BUCKET_NAME, BOT_TOKEN } = env;
+        const { BOT_TOKEN } = env;
 
-        // 📤 Upload File to Backblaze B2
+        // 📤 Upload File to File.io
         if (request.method === "POST" && url.pathname === "/upload-file") {
             try {
                 const formData = await request.formData();
@@ -52,72 +52,25 @@ export default {
                     return new Response(JSON.stringify({ success: false, message: "❌ Incorrect bot token." }), { status: 403 });
                 }
 
-                if (file.size > 50 * 1024 * 1024) {
-                    return new Response(JSON.stringify({ success: false, message: "❌ File size exceeds 50MB limit." }), { status: 400 });
-                }
-
-                const allowedTypes = ["image/jpeg", "image/png", "application/pdf", "video/mp4"];
-                if (!allowedTypes.includes(file.type)) {
-                    return new Response(JSON.stringify({ success: false, message: "❌ Invalid file type. Allowed: JPG, PNG, PDF, MP4." }), { status: 400 });
-                }
-
                 console.log(`📤 Uploading file: ${file.name}`);
 
-                // 🔑 Get B2 Authorization Token
-                const authResponse = await fetch("https://api.backblazeb2.com/b2api/v2/b2_authorize_account", {
-                    headers: {
-                        Authorization: `Basic ${btoa(`${B2_KEY_ID}:${B2_APPLICATION_KEY}`)}`
-                    }
-                });
-
-                const authData = await authResponse.json();
-                console.log("B2 Auth Response:", authData); // Debugging the auth response
-
-                if (!authResponse.ok) {
-                    return new Response(JSON.stringify({ success: false, message: "❌ B2 Auth Failed" }), { status: 500 });
-                }
-
-                const { apiUrl, authorizationToken } = authData;
-
-                // 📥 Get Upload URL
-                const uploadUrlResponse = await fetch(`${apiUrl}/b2api/v2/b2_get_upload_url`, {
-                    method: "POST",
-                    headers: {
-                        Authorization: authorizationToken,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ bucketId: B2_BUCKET_NAME })
-                });
-
-                const uploadUrlData = await uploadUrlResponse.json();
-                console.log("Upload URL Response:", uploadUrlData); // Debugging the upload URL response
-
-                if (!uploadUrlResponse.ok) {
-                    return new Response(JSON.stringify({ success: false, message: "❌ Failed to get upload URL" }), { status: 500 });
-                }
-
-                const { uploadUrl, authorizationToken: uploadAuthToken } = uploadUrlData;
-
-                // 📤 Upload File to B2
                 const fileBlob = await file.arrayBuffer();
-                const uploadResponse = await fetch(uploadUrl, {
+                const fileUpload = new Blob([fileBlob], { type: file.type });
+                let uploadData = new FormData();
+                uploadData.append("file", fileUpload, file.name);
+
+                const fileIoResponse = await fetch("https://file.io", {
                     method: "POST",
-                    headers: {
-                        Authorization: uploadAuthToken,
-                        "X-Bz-File-Name": encodeURIComponent(file.name),
-                        "Content-Type": file.type,
-                        "X-Bz-Content-Sha1": "do_not_verify"
-                    },
-                    body: fileBlob
+                    body: uploadData
                 });
 
-                const uploadResult = await uploadResponse.json();
-                console.log("Upload File Response:", uploadResult); // Debugging the upload response
+                const uploadResult = await fileIoResponse.json();
+                console.log("File.io Response:", uploadResult);
 
-                if (uploadResponse.ok) {
+                if (fileIoResponse.ok && uploadResult.success) {
                     return new Response(JSON.stringify({
                         success: true,
-                        fileId: uploadResult.fileId,
+                        fileUrl: uploadResult.link,
                         message: "✅ File uploaded successfully!"
                     }), {
                         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
@@ -127,7 +80,7 @@ export default {
                 return new Response(JSON.stringify({
                     success: false,
                     message: `❌ Upload error: ${uploadResult.message || "Unknown error"}`
-                }), { status: uploadResponse.status });
+                }), { status: fileIoResponse.status });
 
             } catch (error) {
                 console.error("🚨 Upload error:", error);
