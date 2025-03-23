@@ -1,4 +1,4 @@
-name = "cloudflare-file-hosting"
+name = "oggyhosting"
 main = "worker.js"  # This is the correct field to point to your worker.js file
 compatibility_date = "2025-03-21"
 
