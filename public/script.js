@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (response.ok && result.success) {
-                statusMsg.innerHTML = `<span style='color:green;'>✅ Upload successful! File ID: ${result.fileId}</span>`;
+                statusMsg.innerHTML = `<span style='color:green;'>✅ Upload successful! <br> File Link: <a href="${result.fileUrl}" target="_blank">${result.fileUrl}</a></span>`;
                 document.getElementById("uploadForm").reset();
             } else {
                 console.error("❌ Upload Error:", result);
